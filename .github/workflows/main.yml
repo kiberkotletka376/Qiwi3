@@ -1,0 +1,43 @@
+name: QiwiSnake
+on: [push, pull_request]
+
+jobs:
+  build:
+    # Используем Ubuntu 20.04, так как она лучше дружит с Python 3.8
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt update
+          # Ставим Java 17 (нужна для Android SDK) и нужные либы
+          sudo apt install -y git zip unzip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev openjdk-17-jdk
+          pip install --upgrade pip
+          # Фиксируем версию Cython для Python 3.8
+          pip install buildozer cython==0.29.33 Kivy
+
+      - name: Pre-accept Android Licenses
+        run: |
+          # Создаем папку и заранее принимаем все лицензии, чтобы Aidl не ругался
+          mkdir -p ~/.android && touch ~/.android/repositories.cfg
+          yes | buildozer android debug || true
+          
+      - name: Build with Buildozer
+        run: |
+          # Если файла spec нет, он создастся автоматически
+          if [ ! -f buildozer.spec ]; then buildozer init; fi
+          # Запуск сборки с полным выводом логов
+          buildozer -v android debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: QiwiSnake-APK
+          path: bin/*.apk
