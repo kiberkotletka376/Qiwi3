@@ -1,32 +1,34 @@
-name: QiwiSnake
+name: QiwiSnake-Build
 on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-latest # Самый высокий приоритет в очереди
+    runs-on: ubuntu-22.04 # Более стабильная версия сервера
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python 3.8
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.8'
 
-      - name: Install Dependencies
+      - name: Install System Dependencies
         run: |
           sudo apt update
-          # Устанавливаем всё, включая Java 17 и нужные библиотеки
+          # Устанавливаем Java 17 и все необходимые либы для Android
           sudo apt install -y git zip unzip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev openjdk-17-jdk
           pip install --upgrade pip
-          pip install buildozer cython Kivy
+          # Фиксируем версии для стабильности на Python 3.8
+          pip install buildozer cython==0.29.33 Kivy
 
-      - name: Build with Buildozer
+      - name: Build APK
         run: |
-          # Инициализируем конфиг, если его нет
-          if [ ! -f buildozer.spec ]; then buildozer init; fi
-          # Авто-принятие лицензий и запуск основной сборки
-          yes | buildozer -v android debug
+          # Принимаем лицензии Android (решает проблему Aidl not found)
+          mkdir -p ~/.android && touch ~/.android/repositories.cfg
+          yes | buildozer android debug || true
+          # Запуск основной сборки
+          buildozer -v android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
