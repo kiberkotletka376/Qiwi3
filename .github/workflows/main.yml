@@ -3,7 +3,7 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # Это даст тебе сервер мгновенно
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -16,18 +16,14 @@ jobs:
       - name: Install System Dependencies
         run: |
           sudo apt update
-          # Ставим Java 17 и все нужные библиотеки разом
           sudo apt install -y git zip unzip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev openjdk-17-jdk
           pip install --upgrade pip
           pip install buildozer cython Kivy
 
       - name: Build APK
         run: |
-          # Если файла настроек нет — создаем
           if [ ! -f buildozer.spec ]; then buildozer init; fi
-          # Авто-принятие лицензий (исправляет ошибку Aidl not found)
           yes | buildozer android debug || true
-          # Финальный запуск
           buildozer -v android debug
 
       - name: Upload APK
